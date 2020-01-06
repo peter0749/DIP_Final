@@ -61,8 +61,8 @@ class StyleDecorator(torch.nn.Module):
             b, h, w = feature.size()
             matching_indices = torch.argmax(feature, dim=0)
             matching_indices_ravel = matching_indices.view(-1)
-            one_hot_mask = torch.zeros((b, h*w), dtype=feature.dtype).scatter_(0, matching_indices_ravel.unsqueeze(0), 1).view(b, h, w)
-            outputs.append(one_hot_mask)
+            one_hot_mask = torch.zeros((b, h*w), dtype=feature.dtype, device=feature.device).scatter_(0, matching_indices_ravel.unsqueeze(0), 1).view(b, h, w)
+            outputs.append(one_hot_mask.unsqueeze(0))
 
         return torch.cat(outputs, dim=0)
 

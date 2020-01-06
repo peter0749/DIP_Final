@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 def covsqrt_mean(feature, inverse=False, tolerance=1e-14):
@@ -7,7 +8,13 @@ def covsqrt_mean(feature, inverse=False, tolerance=1e-14):
     zeromean = feature.view(b, c, -1) - mean
     cov = torch.bmm(zeromean, zeromean.transpose(1, 2))
 
-    evals, evects = torch.symeig(cov, eigenvectors=True) # sort by evals: small -> big
+    # evals, evects = torch.symeig(cov, eigenvectors=True) # sort by evals: small -> big !!! BUGGY !!!
+    evals, evects = np.linalg.eig(cov.detach().cpu().numpy())
+    ind = np.argsort(evals, axis=-1) # shape: (1, 512)
+    evals = np.take_along_axis(evals, ind, axis=-1)
+    evects = np.take_along_axis(evects, ind[np.newaxis], axis=-1)
+    evals = torch.tensor(evals, dtype=feature.dtype, device=feature.device)
+    evects = torch.tensor(evects, dtype=feature.dtype, device=feature.device)
 
     p = 0.5
     if inverse:
@@ -15,13 +22,14 @@ def covsqrt_mean(feature, inverse=False, tolerance=1e-14):
 
     covsqrt = []
     for i in range(b):
-        l, r = 0, len(c)-1 # must have at least 1 value (l=0); (]
+        l, r = -1, c-1 # (]
         while l<r-1:
             m = (l+r)//2
             if evals[i][m] > tolerance: # hit
                 r = m # leftest hit
             else: # not hit
                 l = m
+        r = max(0,r)
         covsqrt.append(torch.mm(evects[i][:, r:],
                             torch.mm(evals[i][r:].pow(p).diag_embed(),
                                      evects[i][:, r:].t())).unsqueeze(0))
