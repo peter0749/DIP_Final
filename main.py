@@ -39,6 +39,7 @@ if __name__ == '__main__':
     parser.add_argument('--cropsize', type=int, help='Size for crop image durning training', default=None)
     parser.add_argument('--cencrop', action='store_true', help='Flag for crop the center rigion of the image, default: randomly crop', default=False)
     parser.add_argument('--layers', type=int, nargs='+', help='Layer indices to extract features', default=[1, 6, 11, 20])
+    parser.add_argument('--ckpt', type=str, help="Trained model load path")
     parser.add_argument('--content_path', type=str, help="Test content image path", default='')
     parser.add_argument('--style_path', type=str, nargs='+', help="Test style image path", default='')
     parser.add_argument('--mask_path', type=str, nargs='+', help="Mask image for masked stylization", default=None)

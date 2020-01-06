@@ -15,6 +15,7 @@ def inference(cfg, args):
     network = AvatarNet(args.layers)
     network.load_state_dict(check_point['state_dict'])
     network = network.to(device)
+    network.eval()
 
     ## Load target images
     content_img = imload(args.content_path, .args.imsize, args.cropsize).to(device)
