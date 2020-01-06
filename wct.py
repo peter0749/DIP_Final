@@ -16,7 +16,7 @@ def covsqrt_mean(feature, inverse=False, tolerance=1e-14):
     covsqrt = []
     for i in range(b):
         l, r = 0, len(c)-1 # must have at least 1 value (l=0); (]
-        while l<r:
+        while l<r-1:
             m = (l+r)//2
             if evals[i][m] > tolerance: # hit
                 r = m # leftest hit
