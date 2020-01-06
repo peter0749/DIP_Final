@@ -1,3 +1,4 @@
+import os
 import argparse, json
 from yacs.config import CfgNode as CN
 from trainer import train
@@ -7,7 +8,8 @@ def generate_default_configs():
     _C = CN()
 
     _C.MODEL = CN()
-    _C.MODEL.LAYERS = [1, 6, 11, 20]
+    _C.MODEL.USE_DATAPARALLEL = False
+    _C.MODEL.USABLE_GPUS = [0,]
 
     _C.DATASET = CN()
     _C.DATASET.DATA_ROOT = ''
@@ -38,11 +40,11 @@ def generate_default_configs():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train or test a network')
-    
+
     # Global arguments
     parser.add_argument('config_file', help='config file path')
     parser.add_argument('mode', help='train/test/inference')
-    
+
     # Arguments for inference
     parser.add_argument('--imsize', type=int, help='Size for resize image during training', default=512)
     parser.add_argument('--cropsize', type=int, help='Size for crop image durning training', default=None)
@@ -60,7 +62,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     config_file = args.config_file
     mode = args.mode
-    
+
     cfg = generate_default_configs()
 
     # Configurations

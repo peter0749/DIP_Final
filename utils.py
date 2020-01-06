@@ -28,7 +28,7 @@ class ImageFolder(torch.utils.data.Dataset):
     def __getitem__(self, index):
         while True:
             try:
-                path = os.path.join(self.root_path + self.file_names[index])
+                path = os.path.join(self.root_path,self.file_names[index])
                 image = Image.open(path).convert("RGB")
             except FileNotFoundError as fe:
                 sys.stderr.write('File: {:s} not found!!!\n'.format(path))
@@ -42,7 +42,7 @@ class ImageFolder(torch.utils.data.Dataset):
                 sys.stderr.write('PILError: {:s} when reading file {:s}. The file probablely broken.\n'.format(str(pile), path))
                 index = np.random.randint(self.__len__())
                 continue
-        return self.transform(image)
+            return self.transform(image)
 
 def _normalizer(denormalize=False):
     # set Mean and Std of RGB channels of IMAGENET to use pre-trained VGG net
