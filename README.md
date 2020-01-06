@@ -17,6 +17,13 @@ Requirements
 * Pillow (version: 6.1.0)
 * matplotlib (version: 3.1.1)
 
+New module we need
+--
+* yaml for configs
+``` bash
+  pip install yacs 
+```
+
 Download
 --
 * The trained models can be downloaded throuth the [releases](https://github.com/tyui592/Avatar-Net_Pytorch/releases/download/v0.2/check_point.pth).
