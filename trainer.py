@@ -5,17 +5,14 @@ from tqdm import trange
 
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
-# from network import AvatarNet, Encoder
+from auto_encoder import Encoder
+from avatar_net import AvatarNet
+from utils import ImageFolder, imsave, lastest_arverage_value
 
 def calc_tv_loss(x):
     tv_loss = torch.mean(torch.abs(x[:, :, :, :-1] - x[:, :, :, 1:])) 
     tv_loss += torch.mean(torch.abs(x[:, :, :-1, :] - x[:, :, 1:, :]))
     return tv_loss
-
-def lastest_arverage_value(values, length=100):
-    if len(values) < length:
-        length = len(values)
-    return sum(values[-length:])/length
 
 def checkpoint_file(cfg, iteration):
     return 'checkpoints/{}.mdl.checkpoint{}'.format(cfg.OUTPUT.CHECKPOINT_PREFIX, iteration)
@@ -37,76 +34,65 @@ def train(cfg):
 
     ### Get the training data
     print ('Getting training data ...')
-    # dataset = 
+    dataset = ImageFolder(cfg.DATASET.DATA_ROOT, cfg.IMG_PROCESSING.IMSIZE, cfg.IMG_PROCESSING.CROPSIZE, cfg.IMG_PROCESSING.CENCROP) 
 
     ### Get models
     print ('Getting models ...')
-    # network = AvatarNet(cfg).to(device)
+    network = AvatarNet(cfg).to(device)
 
     ### Get losses
     print ('Setting training loss, optimizer, and loading loss network (VGG19)')
-    # loss_network = Encoder(args.layers).to(device)
+    loss_network = Encoder(cfg.MODEL.LAYERS).to(device)
     mse_loss = torch.nn.MSELoss(reduction='mean').to(device)
     loss_seq = {'total':[], 'image':[], 'feature':[], 'tv':[]}  
     
     ### Get optimizer
     ## Freeze the whole encode during training
-    # for param in network.encoder.parameters():
-        # param.requires_grad = False
-    # opt = torch.optim.Adam(network.decoder.parameters(), lr=cfg.TRAINING.LEARNING_RATE)
+    for param in network.encoder.parameters():
+        param.requires_grad = False
+    opt = torch.optim.Adam(network.decoder.parameters(), lr=cfg.TRAINING.LEARNING_RATE)
     
     
     ### Start training
     print ('Start training')
-    # dataloader = ...
+    dataloader = DataLoader(dataset, batch_size=cfg.TRAINING.BATCH_SIZE, shuffle=True)
     max_iter = cfg.TRAINING.MAX_ITER
     trange = tqdm(enumerate(range(max_iter)), total=max_iter, desc='Train')
     for i, iteration in trange:
         
         ## Get input images with batch
-        # input_img = next(iter(dataloader)).to(device)
+        input_img = next(iter(dataloader)).to(device)
 
         ## Get output images with batch
-        # output_image = network(input_image, [input_image], train=True)
+        output_image = network(input_image, [input_image], train=True)
         
         ## Calculate losses
         total_loss = 0
 
         ## Image reconstruction loss
-        # image_loss = mse_loss(output_image, input_image)
-        # loss_seq['image'].append(image_loss.item())
-        # total_loss += image_loss
+        image_loss = mse_loss(output_image, input_image)
+        loss_seq['image'].append(image_loss.item())
+        total_loss += image_loss
 
         ## Feature reconstruction loss
-        # input_features = loss_network(input_image)
-        # output_features = loss_network(output_image) 
-        # feature_loss = 0
-        # for output_feature, input_feature in zip(output_features, input_features):
-            # feature_loss += mse_loss(output_feature, input_feature)
-        # loss_seq['feature'].append(feature_loss.item())
-        # total_loss += feature_loss * cfg.LOSS.FEATURE_WEIGHT
+        input_features = loss_network(input_image)
+        output_features = loss_network(output_image) 
+        feature_loss = 0
+        for output_feature, input_feature in zip(output_features, input_features):
+            feature_loss += mse_loss(output_feature, input_feature)
+        loss_seq['feature'].append(feature_loss.item())
+        total_loss += feature_loss * cfg.LOSS.FEATURE_WEIGHT
         
         ## Total variation loss
-        # tv_loss = calc_tv_loss(output_image)
-        # loss_seq['tv'].append(tv_loss.item())
-        # total_loss += tv_loss * cfg.LOSS.TV_WEIGHT
+        tv_loss = calc_tv_loss(output_image)
+        loss_seq['tv'].append(tv_loss.item())
+        total_loss += tv_loss * cfg.LOSS.TV_WEIGHT
 
-        # loss_seq['total'].append(total_loss.item())
+        loss_seq['total'].append(total_loss.item())
         
-        ##### DEBUG ######
-        for i in range(10000):
-            pass
-        import random
-
-        loss_seq['image'].append(sum([0,0,0,random.random(),0]))
-        loss_seq['feature'].append(sum([0,0,0,random.random(),1]))
-        loss_seq['tv'].append(sum([0,0,0,random.random(),2]))
-        loss_seq['total'].append(loss_seq['image'][-1] + loss_seq['feature'][-1]*cfg.LOSS.FEATURE_WEIGHT + loss_seq['tv'][-1]*cfg.LOSS.TV_WEIGHT)
-        ##################
-
-        # optimizer.zero_grad()
-        # total_loss.backward()
-        # optimizer.step()
+        opt.zero_grad()
+        total_loss.backward()
+        opt.step()
 
         if (iteration + 1) % cfg.TRAINING.CHECK_PER_ITER == 0:
             # Show current lossese onto terminal
@@ -122,9 +108,8 @@ def train(cfg):
             if not os.path.exists(cfg.OUTPUT.CHECKPOINT_ROOT):
                 os.mkdir(cfg.OUTPUT.CHECKPOINT_ROOT)
             
-            # save_model(checkpoint_file(cfg, iteration+1), 
-                # {'iteration': iteration+1,
-                # 'state_dict': network.state_dict(),
-                # 'loss_seq': loss_seq})
-        pass
+            save_model(checkpoint_file(cfg, iteration+1), 
+                {'iteration': iteration+1,
+                'state_dict': network.state_dict(),
+                'loss_seq': loss_seq})
 

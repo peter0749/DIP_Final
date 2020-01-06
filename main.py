@@ -5,18 +5,27 @@ from inference import inference
 
 def generate_default_configs():
     _C = CN()
+
+    _C.MODEL = CN()
+    _C.MODEL.LAYERS = [1, 6, 11, 20]
+
     _C.DATASET = CN()
     _C.DATASET.DATA_ROOT = ''
 
+    _C.IMG_PROCESSING = CN()
+    _C.IMG_PROCESSING.IMSIZE = 512
+    _C.IMG_PROCESSING.CROPSIZE = 256
+    _C.IMG_PROCESSING.CENCROP = False
+
     _C.LOSS = CN()
-    _C.LOSS.FEATURE_WEIGHT = 0.0
-    _C.LOSS.TV_WEIGHT = 0.0
+    _C.LOSS.FEATURE_WEIGHT = 0.2
+    _C.LOSS.TV_WEIGHT = 1.0
 
     _C.TRAINING = CN()
-    _C.TRAINING.EPOCH = 0
-    _C.TRAINING.MAX_ITER = 0
-    _C.TRAINING.BATCH_SIZE = 0
-    _C.TRAINING.LEARNING_RATE = 0.0
+    _C.TRAINING.EPOCH = 10
+    _C.TRAINING.MAX_ITER = 5000
+    _C.TRAINING.BATCH_SIZE = 32
+    _C.TRAINING.LEARNING_RATE = 0.001
     _C.TRAINING.USE_CUDA = True
     _C.TRAINING.CHECK_PER_ITER = 100
 

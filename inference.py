@@ -1,6 +1,6 @@
 import torch
 
-from network import AvatarNet
+from avatar_net import AvatarNet
 from utils import imload, imsave, maskload
 
 def inference(cfg, args):
@@ -18,7 +18,7 @@ def inference(cfg, args):
     network.eval()
 
     ## Load target images
-    content_img = imload(args.content_path, .args.imsize, args.cropsize).to(device)
+    content_img = imload(args.content_path, args.imsize, args.cropsize).to(device)
     style_imgs = [imload(args.style_path, args.imsize, args.cropsize, args.cencrop).to(device) for style in args.style_path]
     masks = None
     if args.mask_path:
@@ -26,7 +26,7 @@ def inference(cfg, args):
 
      # stylize image
     with torch.no_grad():
-        stylized_img =  network(args.content_img, style_imgs, args.style_strength, args.patch_size, args.patch_stride,
+        stylized_img =  network(content_img, style_imgs, args.style_strength, args.patch_size, args.patch_stride,
                 masks, args.interpolation_weights, False)
 
     imsave(stylized_img, 'stylized_image.jpg')
