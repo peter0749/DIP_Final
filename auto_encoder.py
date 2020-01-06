@@ -89,7 +89,6 @@ class Decoder(nn.Module):
 
         out = x
         for i, layer in enumerate(self.layers):
-            print(out.size())
             out = layer(out)
 
             if self.transforms[i] is not None:
