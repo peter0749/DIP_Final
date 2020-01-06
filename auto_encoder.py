@@ -14,7 +14,7 @@ class Encoder(nn.Module):
 
         self.layers = nn.ModuleList()
         tmp_seq = nn.Sequential()
-        for i in range(layer_index[-1]+1):
+        for i in range(max(layer_index)+1):
             tmp_seq.add_module(str(i), vgg_feats[i])
             if i in layer_index:
                 self.layers.append(tmp_seq)
@@ -36,14 +36,14 @@ class AdaIN(nn.Module):
     def forward(self, content, style, style_weight=1.0, eps=1e-5):
         n, c, h, w = content.size()
 
-        content_std , content_mean = torch.std_mean(content.view(n, c, -1), dim=2, keepdim=True)
+        content_std, content_mean = torch.std_mean(content.view(n, c, -1), dim=2, keepdim=True)
         style_std, style_mean = torch.std_mean(style.view(n, c, -1), dim=2, keepdim=True)
 
         norm_content = (content.view(n, c, -1)- content_mean) / (content_std + eps)
         stylized_content = (norm_content * style_std) + style_mean
 
         out = (1-style_weight) * content + style_weight * stylized_content.view(n, c, h, w)
-        
+
         return out
 
 class Decoder(nn.Module):
@@ -60,8 +60,7 @@ class Decoder(nn.Module):
         cnt = 0
         for i in range(max(layer_index)-1, -1, -1):
             if isinstance(vgg_feats[i], nn.Conv2d):
-                out_channels = vgg_feats[i].in_channels
-                in_channels = vgg_feats[i].out_channels
+                out_channels, in_channels = vgg_feats[i].in_channels, vgg_feats[i].out_channels 
                 kernel_size = vgg_feats[i].kernel_size
 
                 tmp_seq.add_module(str(cnt), nn.ReflectionPad2d(padding=(1,1,1,1)))
@@ -95,9 +94,9 @@ class Decoder(nn.Module):
                 trans_feats = []
                 for style, interp_weight, mask in zip(styles, interp_weights, masks):
                     if isinstance(mask, torch.Tensor):
-                        n, c, h, w = out.size()
+                        _, _, h, w = out.size()
                         mask = F.interpolate(mask, size=(h, w))
-                    trans_feats.append(self.transforms[i](out, style[i])*interp_weight*mask)
+                    trans_feats.append(self.transforms[i](out, style[i]) * interp_weight * mask)
                 out = torch.sum(torch.stack(trans_feats, dim=0), dim=0)
         
         return out
