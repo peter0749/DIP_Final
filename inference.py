@@ -18,8 +18,10 @@ def inference(cfg, args):
     network.eval()
 
     ## Load target images
-    content_img = imload(args.content_path, args.imsize, args.cropsize).to(device)
-    style_imgs = [imload(style, args.imsize, args.cropsize, args.cencrop).to(device) for style in args.style_path]
+    content_img = imload(args.content_path, args.imsize, args.cropsize if args.cropsize>0 else None).to(device)
+    # content_img = imload(args.content_path, args.imsize).to(device)
+    style_imgs = [imload(style, args.imsize, args.cropsize if args.cropsize>0 else None, args.cencrop).to(device) for style in args.style_path]
+    # style_imgs = [imload(style, args.imsize).to(device) for style in args.style_path]
     masks = None
     if args.mask_path:
         masks = [maskload(mask).to(device) for mask in args.mask_path]

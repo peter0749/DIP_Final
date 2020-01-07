@@ -3,7 +3,10 @@ import os
 from tqdm import tqdm
 from tqdm import trange
 
-from torch.utils.tensorboard import SummaryWriter
+try:
+    from torch.utils.tensorboard import SummaryWriter
+except ImportError:
+    from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
 from auto_encoder import Encoder
 from avatar_net import AvatarNet

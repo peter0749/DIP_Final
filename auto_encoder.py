@@ -26,7 +26,7 @@ class Encoder(nn.Module):
         for layer in self.layers:
             out = layer(out)
             feats.append(out)
-        
+
         return feats
 
 class AdaIN(nn.Module):
@@ -36,8 +36,10 @@ class AdaIN(nn.Module):
     def forward(self, content, style, style_weight=1.0, eps=1e-5):
         n, c, h, w = content.size()
 
-        content_std, content_mean = torch.std_mean(content.view(n, c, -1), dim=2, keepdim=True)
-        style_std, style_mean = torch.std_mean(style.view(n, c, -1), dim=2, keepdim=True)
+        content_mean = torch.mean(content.view(n, c, -1), dim=2, keepdim=True)
+        content_std = torch.std(content.view(n, c, -1), dim=2, keepdim=True)
+        style_mean = torch.mean(style.view(n, c, -1), dim=2, keepdim=True)
+        style_std = torch.std(style.view(n, c, -1), dim=2, keepdim=True)
 
         norm_content = (content.view(n, c, -1)- content_mean) / (content_std + eps)
         stylized_content = (norm_content * style_std) + style_mean
@@ -49,7 +51,7 @@ class AdaIN(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, transforms=[AdaIN(), AdaIN(), AdaIN(), None]):
         super(Decoder, self).__init__()
-        
+
         vgg_feats = torchvision.models.vgg19(pretrained=False).features
         self.transforms = transforms
 
@@ -60,7 +62,7 @@ class Decoder(nn.Module):
         cnt = 0
         for i in range(max(layer_index)-1, -1, -1):
             if isinstance(vgg_feats[i], nn.Conv2d):
-                out_channels, in_channels = vgg_feats[i].in_channels, vgg_feats[i].out_channels 
+                out_channels, in_channels = vgg_feats[i].in_channels, vgg_feats[i].out_channels
                 kernel_size = vgg_feats[i].kernel_size
 
                 tmp_seq.add_module(str(cnt), nn.ReflectionPad2d(padding=(1,1,1,1)))
@@ -69,11 +71,11 @@ class Decoder(nn.Module):
                 cnt += 1
                 tmp_seq.add_module(str(cnt), nn.ReLU())
                 cnt += 1
-            
+
             elif isinstance(vgg_feats[i], nn.MaxPool2d):
                 tmp_seq.add_module(str(cnt), nn.Upsample(scale_factor=2))
                 cnt += 1
-            
+
             if i in layer_index:
                 self.layers.append(tmp_seq)
                 tmp_seq = nn.Sequential()
@@ -82,7 +84,7 @@ class Decoder(nn.Module):
     def forward(self, x, styles, masks=None, interp_weights=None):
         if interp_weights is None:
             interp_weights = [1/len(styles)] * len(styles)
-        
+
         if masks is None:
             masks = [1] * len(styles)
 
@@ -98,5 +100,5 @@ class Decoder(nn.Module):
                         mask = F.interpolate(mask, size=(h, w))
                     trans_feats.append(self.transforms[i](out, style[i]) * interp_weight * mask)
                 out = torch.sum(torch.stack(trans_feats, dim=0), dim=0)
-        
+
         return out
