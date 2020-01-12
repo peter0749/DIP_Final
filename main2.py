@@ -3,7 +3,7 @@ import argparse, json
 from yacs.config import CfgNode as CN
 from trainer import train
 from demo import video, denoise
-from inference import inference
+from inference2 import inference
 
 def generate_default_configs():
     _C = CN()
