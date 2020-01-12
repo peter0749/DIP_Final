@@ -98,7 +98,8 @@ class Decoder(nn.Module):
                     if isinstance(mask, torch.Tensor):
                         _, _, h, w = out.size()
                         mask = F.interpolate(mask, size=(h, w))
-                    trans_feats.append(self.transforms[i](out, style[i]) * interp_weight * mask)
-                out = torch.sum(torch.stack(trans_feats, dim=0), dim=0)
+                    feat = self.transforms[i](out, style[i])
+                    trans_feats.append(feat * interp_weight * mask)
+                out = sum(trans_feats)
 
         return out
