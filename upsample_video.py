@@ -1,5 +1,6 @@
 import argparse, os
 import cv2
+from tqdm import tqdm
 import torch
 from torch.autograd import Variable
 import numpy as np
@@ -32,22 +33,21 @@ pickle.load = partial(pickle.load, encoding="latin1")
 pickle.Unpickler = partial(pickle.Unpickler, encoding="latin1")
 model = _NetG()
 ckpt = torch.load(opt.model, pickle_module=pickle)["model"].state_dict()
-if opt.cuda:
+if cuda:
     model.load_state_dict(ckpt, strict=False)
 else:
     model.load_state_dict(ckpt, strict=False, map_location='cpu')
 
 if cuda:
     model = model.cuda()
-    im_input = im_input.cuda()
 else:
     model = model.cpu()
 
 model = model.eval()
 
-cap = cv2.VideoCapture(args.video)
+cap = cv2.VideoCapture(opt.video)
 fps = opt.fps
-out = None
+out_vid = None
 with torch.no_grad():
     with tqdm() as pbar:
         while cap.isOpened():
@@ -56,6 +56,10 @@ with torch.no_grad():
                 im_input = frame.astype(np.float32).transpose(2,0,1)
                 im_input = im_input.reshape(1,im_input.shape[0],im_input.shape[1],im_input.shape[2])
                 im_input = Variable(torch.from_numpy(im_input/255.).float())
+                if cuda:
+                    im_input = im_input.cuda()
+                else:
+                    im_input = im_input.cpu()
                 out = model(im_input)
                 out = out.cpu()
                 im_h = out[0].numpy().astype(np.float32)
@@ -63,16 +67,16 @@ with torch.no_grad():
                 im_h = im_h*255.
                 im_h[im_h<0] = 0
                 im_h[im_h>255.] = 255.
-                im_h = im_h.transpose(1,2,0)
+                im_h = im_h.transpose(1,2,0).astype(np.uint8)
 
-                if out is None:
+                if out_vid is None:
                     img_size_output = tuple(im_h.shape[:2][::-1])
-                    out = cv2.VideoWriter(args.output, cv2.VideoWriter_fourcc(*'HFYU'), fps, img_size_output)
+                    out_vid = cv2.VideoWriter(opt.output, cv2.VideoWriter_fourcc(*'HFYU'), fps, img_size_output)
 
-                out.write(im_h)
+                out_vid.write(im_h)
                 pbar.update(1)
             else:
                 break
 cap.release()
-out.release()
+out_vid.release()
 
